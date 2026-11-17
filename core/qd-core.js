@@ -18,10 +18,10 @@
   QD.SQLJS_CDN = 'https://cdn.jsdelivr.net/npm/sql.js@' + QD.SQLJS_VERSION + '/dist/';
   QD.PREFIX = '_qd_';
 
-  /* Soft limits, in bytes of CSV text or database file. Table Forge warns at warn and refuses at max. */
+  /* Limits in bytes of CSV text or database file, set on Day 194. CSV Intake warns at warn and refuses at max. */
   QD.LIMITS = {
-    phone: { warn: 15 * 1048576, max: 40 * 1048576 },
-    desktop: { warn: 80 * 1048576, max: 250 * 1048576 },
+    phone: { warn: 10 * 1048576, max: 15 * 1048576 },
+    desktop: { warn: 40 * 1048576, max: 80 * 1048576 },
     resultRows: 5000,
     cellChars: 2000
   };

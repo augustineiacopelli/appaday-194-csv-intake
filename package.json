@@ -5,7 +5,8 @@
   "scripts": {
     "test": "node --test test/core.test.js test/keys.test.js test/clinic.test.js test/ask.test.js test/browser.test.js",
     "vendor": "node tools/vendor.js",
-    "check": "node tools/vendor.js --check"
+    "check": "node tools/vendor.js --check index.html harness/index.html",
+    "fixtures": "node tools/make-fixtures.js"
   },
   "private": true,
   "devDependencies": {

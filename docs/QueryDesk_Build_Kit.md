@@ -20,7 +20,7 @@ The test suite has 99 tests and all pass (`npm test`). It covers the core, four 
 Three things could not be tested in the build sandbox. Settle them at the start of Day 194 by opening `harness/index.html` on a desktop and on an iPhone.
 
 1. The engine loading from the CDN in a real browser. The sandbox blocks jsdelivr, so the WebAssembly load was only exercised through Node.
-2. Real size limits on a phone. `QD.LIMITS` holds placeholder numbers (warn at 15 MB and refuse at 40 MB on a phone, 80 and 250 on a desktop). The check page has a size test with 5, 15, 40 and 80 MB buttons. Replace the placeholders with what the iPhone actually survives.
+2. Real size limits on a phone. Settled on Day 194: `QD.LIMITS` warns at 10 MB and refuses at 15 MB on a phone, and warns at 40 MB and refuses at 80 MB on a desktop.
 3. The Plain Ask prompt against the live model. The flow is tested with a mocked reply. The check page has a Live question box that sends a real question about the practice data. Section 8 lists five questions with known answers.
 
 ## 3. The contract
@@ -111,17 +111,23 @@ An app marks where each module goes with an empty marker pair inside one script 
 
 On Day 194 the workspace goes into the `appaday-194-csv-intake` repository alongside the app, and later sessions connect to that repository. Each later app's repository holds only its own `index.html` and README, vendored from 194.
 
-Every app's head carries the standard icon and Save to Phone tags from the Shipping Standard, then this engine tag before the inline script:
+Every app's head carries the standard icon and Save to Phone tags from the Shipping Standard, then this engine tag before the inline script. The engine lives in the portal repository (decided on Day 194), so the path is relative and every app boots with a matching `locateFile`:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/sql.js@1.16.0/dist/sql-wasm.js"></script>
+<script src="../appaday/vendor/sql.js-1.16.0/sql-wasm.js"></script>
 ```
+
+```js
+QD.boot(null, { locateFile: function (f) { return '../appaday/vendor/sql.js-1.16.0/' + f; } });
+```
+
+Day 194 also built the shared interface pieces (project bar, open sheet, empty state led by Load sample data, Settings sheet) in `index.html`. Copy them forward from there.
 
 The AI apps (197 and 200) also carry the `models.js` tag and the `keys.js` tag with their own `data-app`. `AppKeys` must never be called at the top level of the inline script.
 
 ## 6. Decisions to make before Day 194
 
-1. Engine hosting. The plan loads sql.js from jsdelivr, pinned to 1.16.0, which keeps each app a single file. It is a new CDN dependency beyond Chart.js, and the weekly health check may need to allow it. The alternative is to commit `sql-wasm.js` and `sql-wasm.wasm` to the portal repository and load them from there, which removes the outside dependency for all seven apps at once.
+1. Engine hosting. Settled on Day 194: `sql-wasm.js` and `sql-wasm.wasm` are committed to the portal repository at `vendor/sql.js-1.16.0/` and loaded by relative path. The original plan loaded sql.js from jsdelivr, pinned to 1.16.0, which keeps each app a single file. It is a new CDN dependency beyond Chart.js, and the weekly health check may need to allow it. The alternative is to commit `sql-wasm.js` and `sql-wasm.wasm` to the portal repository and load them from there, which removes the outside dependency for all seven apps at once.
 2. Whether the six daily apps publish as numbered portal entries. The plan assumes they do, since each one stands alone and the streak needs an app every day.
 3. Categories. Milestone 200 must be Utility. The plan files 194 to 197 under Utility, 198 under Data and 199 under Educational for variety. Any of the six can move.
 4. Names. Day 194 was first called Table Forge. It is renamed CSV Intake here because Forge already names the Saga series and QR Forge in the portal.
