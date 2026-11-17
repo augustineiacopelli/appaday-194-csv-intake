@@ -17,9 +17,9 @@ The test suite has 99 tests and all pass (`npm test`). It covers the core, four 
 
 ## 2. What has not been verified
 
-Three things could not be tested in the build sandbox. Settle them at the start of Day 194 by opening `harness/index.html` on a desktop and on an iPhone.
+Three things could not be tested in the build sandbox. Two are now closed; the third stays open until the Plain Ask benchmarks run.
 
-1. The engine loading from the CDN in a real browser. The sandbox blocks jsdelivr, so the WebAssembly load was only exercised through Node.
+1. Closed on Day 194. The engine loads from the portal repository at `vendor/sql.js-1.16.0/`, not from the CDN. It was checked in Chromium at 375 px, and a CSV load passed on an iPhone. A project saved by CSV Intake also opens from the open sheet in Query Bench.
 2. Real size limits on a phone. Settled on Day 194: `QD.LIMITS` warns at 10 MB and refuses at 15 MB on a phone, and warns at 40 MB and refuses at 80 MB on a desktop.
 3. The Plain Ask prompt against the live model. The flow is tested with a mocked reply. The check page has a Live question box that sends a real question about the practice data. Section 8 lists five questions with known answers.
 
