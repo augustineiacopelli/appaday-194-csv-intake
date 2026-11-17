@@ -1,0 +1,16 @@
+{
+  "name": "querydesk-core",
+  "version": "1.0.0",
+  "description": "Shared core for Query Desk, AppADay 194 to 200",
+  "scripts": {
+    "test": "node --test test/core.test.js test/keys.test.js test/clinic.test.js test/ask.test.js test/browser.test.js",
+    "vendor": "node tools/vendor.js",
+    "check": "node tools/vendor.js --check"
+  },
+  "private": true,
+  "devDependencies": {
+    "fake-indexeddb": "^6.2.8",
+    "jsdom": "^31.0.1",
+    "sql.js": "1.16.0"
+  }
+}
