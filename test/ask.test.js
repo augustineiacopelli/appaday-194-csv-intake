@@ -113,6 +113,36 @@ test('explain returns a summary and steps on the cheap tier without sample rows'
   assert.ok(!/sample rows/.test(d.calls[0].messages[0].content));
 });
 
+test('starters: the sample data gives four distinct questions that name real tables', () => {
+  const q = A.starters(P);
+  assert.equal(q.length, 4);
+  assert.equal(new Set(q).size, 4);
+  const tables = P.userTables();
+  q.forEach(s => assert.ok(tables.some(t => s.includes(t.replace(/_/g, ' '))), s));
+  assert.equal(q[0], 'How many enrollments are there?');
+  assert.match(q[1], /^What is the highest grade points in enrollments\?$/);
+  assert.match(q[2], /^How many enrollments does each \w+ have\?$/);
+  assert.match(q[3], /per month, using enrolled on/);
+  q.forEach(s => assert.ok(!/[^\x20-\x7e]/.test(s) && !/-/.test(s), s));
+});
+
+test('starters: a single table with no relationships still gives four', () => {
+  const one = QD.create();
+  one.execute('CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT)');
+  one.execute("INSERT INTO notes (body) VALUES ('a'), ('b')");
+  const q = A.starters(one);
+  assert.equal(q.length, 4);
+  assert.equal(new Set(q).size, 4);
+  q.forEach(s => assert.ok(s.includes('notes') || s.includes('body'), s));
+  one.close();
+});
+
+test('starters: a project with no tables gives an empty list', () => {
+  const empty = QD.create();
+  assert.deepEqual(A.starters(empty), []);
+  empty.close();
+});
+
 test('the system prompt and module are ASCII clean, carry no model ID and no dashes', () => {
   const src = require('fs').readFileSync(require('path').join(__dirname, '../core/qd-ask.js'), 'utf8');
   for (let i = 0; i < src.length; i++) assert.ok(src.charCodeAt(i) < 128);

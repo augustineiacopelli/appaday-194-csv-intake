@@ -2651,7 +2651,7 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = C;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 /* QD:CLINIC END */
-/* QD:ASK BEGIN v1.0.0 */
+/* QD:ASK BEGIN v1.1.0 */
 /*
  * Plain Ask: a question in English becomes one read only SQLite query. Depends on QD:CORE.
  *
@@ -2666,7 +2666,7 @@
   'use strict';
   var QD = root.QD || (typeof require === 'function' ? require('./qd-core.js') : null);
   var A = {};
-  A.VERSION = '1.0.0';
+  A.VERSION = '1.1.0';
   A.TIER = 'sonnet';
   A.MAX_TOKENS = 1500;
 
@@ -2785,6 +2785,113 @@
         return { summary: j.summary.trim(), steps: Array.isArray(j.steps) ? j.steps.filter(function (s) { return typeof s === 'string'; }) : [] };
       });
   };
+
+  /* ------------------------------------------------------------ starter questions */
+
+  function words(name) { return String(name).replace(/[_\s]+/g, ' ').trim().toLowerCase(); }
+  function isIdName(n) { return /(^|_)id$/i.test(n) || /^id(_|$)/i.test(n) || /^(uuid|guid)$/i.test(n); }
+  function kind(c) {
+    var t = String(c.inferredType || c.type || '').toLowerCase();
+    if (/date|time/.test(t)) return 'date';
+    if ((t === '' || /text|char|clob/.test(t)) && /(^|_)(date|dob)$|_(on|at|date|time)$/i.test(c.name)) return 'date';
+    if (/int|real|num|float|doub|dec/.test(t) && !/bool/.test(t)) return 'number';
+    if (/bool/.test(t)) return 'bool';
+    return 'text';
+  }
+
+  /**
+   * Four question strings built locally from the schema and the confirmed relationships.
+   * Nothing is sent anywhere. Templates, in order: a count of the largest table, the highest value of the
+   * first numeric column that is not an id, a child table counted by its confirmed parent, and a count per
+   * month on the first date column. A template the schema cannot support is replaced by a fallback, so a
+   * project with at least one table always gets four distinct questions and one with none gets [].
+   */
+  A.starters = function (project) {
+    var tables = project.schema();
+    if (!tables.length) return [];
+    var bySize = tables.slice().sort(function (a, b) { return (b.rowCount - a.rowCount) || (a.name < b.name ? -1 : 1); });
+    var big = bySize[0];
+    var slots = [null, null, null, null];
+
+    slots[0] = 'How many ' + words(big.name) + ' are there?';
+
+    var linked = {};
+    var rels = [];
+    try { rels = project.relations('confirmed') || []; } catch (e) { rels = []; }
+    rels.forEach(function (r) {
+      (r.fromColumns || []).forEach(function (c) { linked[r.fromTable + '.' + c] = 1; });
+      (r.toColumns || []).forEach(function (c) { linked[r.toTable + '.' + c] = 1; });
+    });
+    tables.forEach(function (t) { t.foreignKeys.forEach(function (f) { linked[t.name + '.' + f.from] = 1; }); });
+
+    for (var i = 0; i < bySize.length && !slots[1]; i++) {
+      var t = bySize[i];
+      for (var j = 0; j < t.columns.length; j++) {
+        var c = t.columns[j];
+        if (kind(c) === 'number' && !c.pk && !isIdName(c.name) && !linked[t.name + '.' + c.name]) {
+          slots[1] = 'What is the highest ' + words(c.name) + ' in ' + words(t.name) + '?';
+          break;
+        }
+      }
+    }
+
+    /* confirmed relationships first, then keys the file itself declares, largest child table first */
+    var names = {}, links = [];
+    tables.forEach(function (t) { names[t.name] = 1; });
+    rels.forEach(function (r) { links.push({ child: r.fromTable, parent: r.toTable }); });
+    bySize.forEach(function (t) { t.foreignKeys.forEach(function (f) { links.push({ child: t.name, parent: f.table }); }); });
+    for (var k = 0; k < links.length; k++) {
+      var r = links[k];
+      if (r.child !== r.parent && names[r.child] && names[r.parent]) {
+        slots[2] = 'How many ' + words(r.child) + ' does each ' + singular(words(r.parent)) + ' have?';
+        break;
+      }
+    }
+
+    for (var m = 0; m < bySize.length && !slots[3]; m++) {
+      var tt = bySize[m];
+      for (var n = 0; n < tt.columns.length; n++) {
+        if (kind(tt.columns[n]) === 'date') {
+          slots[3] = 'How many ' + words(tt.name) + ' are there per month, using ' + words(tt.columns[n].name) + '?';
+          break;
+        }
+      }
+    }
+
+    var pool = [];
+    bySize.forEach(function (tb) {
+      pool.push('Show me the first 10 rows of ' + words(tb.name) + '.');
+      var txt = tb.columns.filter(function (c) { return kind(c) === 'text' && !c.pk && !isIdName(c.name); })[0];
+      if (txt) {
+        pool.push('Which ' + words(txt.name) + ' appears most often in ' + words(tb.name) + '?');
+        pool.push('How many different ' + words(txt.name) + ' values are there in ' + words(tb.name) + '?');
+        pool.push('How many ' + words(tb.name) + ' have no ' + words(txt.name) + '?');
+      }
+      if (tb.columns.length) {
+        var any = tb.columns[tb.columns.length - 1];
+        pool.push('How many ' + words(tb.name) + ' have no ' + words(any.name) + '?');
+      }
+    });
+    if (tables.length > 1) pool.push('How many rows are in each table?');
+    pool.push('What columns does ' + words(big.name) + ' have?');
+
+    var out = [];
+    function seen(q) { return out.indexOf(q) >= 0 || slots.indexOf(q) >= 0; }
+    var pi = 0;
+    for (var s = 0; s < 4; s++) {
+      if (slots[s]) { out.push(slots[s]); continue; }
+      while (pi < pool.length && (seen(pool[pi]) || out.indexOf(pool[pi]) >= 0)) pi++;
+      if (pi < pool.length) out.push(pool[pi++]);
+    }
+    return out;
+  };
+
+  function singular(w) {
+    if (/ies$/.test(w)) return w.slice(0, -3) + 'y';
+    if (/(ses|xes|ches|shes)$/.test(w)) return w.slice(0, -2);
+    if (/s$/.test(w) && !/ss$/.test(w)) return w.slice(0, -1);
+    return w;
+  }
 
   A._parseReply = parseReply;
   root.QDAsk = A;

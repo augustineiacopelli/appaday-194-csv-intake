@@ -13,7 +13,7 @@ Four modules were built and tested on November 16 so the daily sessions only hav
 | `qd-clinic.js` | `QDClinic` | The practice database generator, 40 graded exercises in 10 units, the checker, progress tracking | 199, 200, and the sample data button everywhere |
 | `qd-ask.js` | `QDAsk` | Question to SQL prompt, reply parsing, one repair pass, query explainer | 197, 200 |
 
-The test suite has 99 tests and all pass (`npm test`). It covers the core, four trap datasets for key inference, every exercise three ways (the reference answer, a second correct route that must be accepted, and a common mistake that must be rejected), the Plain Ask flow against a mocked model, and the check page run end to end in a simulated browser.
+The test suite has 102 tests and all pass (`npm test`). It covers the core, four trap datasets for key inference, every exercise three ways (the reference answer, a second correct route that must be accepted, and a common mistake that must be rejected), the Plain Ask flow against a mocked model, and the check page run end to end in a simulated browser.
 
 ## 2. What has not been verified
 
@@ -101,7 +101,7 @@ Inference results worth knowing when building interfaces. Column types are `inte
 
 ```
 core/       the four modules, the only place they are edited
-test/       99 tests, run with npm test
+test/       102 tests, run with npm test
 tools/      vendor.js copies modules into an index.html, and --check verifies a copy
 harness/    the check page, a working example of a vendored single file
 docs/       this document
@@ -188,7 +188,7 @@ Build: a question box with four starter questions generated locally from the sch
 
 First hour: run the five benchmark questions in section 8 against the live model through the check page and tune `QDAsk.SYSTEM` in `core/` if any fail.
 
-Done when: all five benchmarks return the known answers. A request to delete data comes back failed and the data is intact. With no key the app explains what to do and nothing breaks.
+Done when: all five benchmarks return the known answers. A request to delete data comes back cannot or failed and the data is intact. With no key the app explains what to do and nothing breaks.
 
 Out of scope: follow up questions that remember the last answer, streaming.
 
