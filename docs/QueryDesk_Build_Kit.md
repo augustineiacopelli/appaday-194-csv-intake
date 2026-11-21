@@ -12,8 +12,9 @@ Four modules were built and tested on November 16 so the daily sessions only hav
 | `qd-keys.js` | `QDKeys` | Primary key and foreign key inference with scores and reasons, composite keys, join path finder, JOIN writer | 196, 200, sample data check in 194 |
 | `qd-clinic.js` | `QDClinic` | The practice database generator, 40 graded exercises in 10 units, the checker, progress tracking | 199, 200, and the sample data button everywhere |
 | `qd-ask.js` | `QDAsk` | Question to SQL prompt, reply parsing, one repair pass, query explainer | 197, 200 |
+| `qd-charts.js` | `QDCharts` | Added on Day 198. Profiles a result's columns as number, date or label, suggests the first chart spec and the allowed types, and turns a result and a spec into labels and datasets after pivot, sort and limit. Pure JavaScript with no Chart.js reference | 198, 200 |
 
-The test suite has 102 tests and all pass (`npm test`). It covers the core, four trap datasets for key inference, every exercise three ways (the reference answer, a second correct route that must be accepted, and a common mistake that must be rejected), the Plain Ask flow against a mocked model, and the check page run end to end in a simulated browser.
+The core is at version 1.2.0 as of Day 198, which added chart storage (`saveChart`, `charts`, `updateChart`, `moveChart`, `deleteChart` and `QD.validateChartSpec`) with no schema migration. The test suite has 116 tests and all pass (`npm test`), the original 102 plus 14 chart tests in `test/charts.test.js`. It covers the core, four trap datasets for key inference, every exercise three ways (the reference answer, a second correct route that must be accepted, and a common mistake that must be rejected), the Plain Ask flow against a mocked model, and the check page run end to end in a simulated browser.
 
 ## 2. What has not been verified
 
@@ -93,6 +94,13 @@ QDClinic.progress(clinic);                         // { byId, solved, total, uni
 const ans = await QDAsk.ask(p, question, { sampleRows: 3 });
 //   ans.status: ok | cannot | failed | declined; ok carries sql, explanation, assumptions, result, repaired
 await QDAsk.explain(p, sql);                       // { summary, steps }
+
+const g = QDCharts.suggest(result, { title });     // { spec, types, shape, reason, profile }; spec null when no chart fits
+QDCharts.profile(result);                          // [{ name, index, kind: number|date|label, distinct, positive }]
+QDCharts.data(result, spec);                       // { labels, datasets: [{ label, data }], type, truncated }
+const id = p.saveChart({ queryId, spec, position }); // spec is checked by QD.validateChartSpec, anything else is refused
+p.charts();                                        // [{ id, queryId, name, spec, position, createdAt }] in board order
+p.updateChart(id, spec); p.moveChart(id, 0); p.deleteChart(id);
 ```
 
 Inference results worth knowing when building interfaces. Column types are `integer`, `real`, `boolean`, `date`, `datetime` and `text`. Inference is strict: one value that does not fit keeps the column as text, and `nearMiss` then reports the type that almost fit and up to five offending values, so the interface can offer a one tap coercion by reloading with `types`. Digits with leading zeros stay text. Slash dates are read month first unless a day above 12 proves otherwise, and the note says when the order was a guess. Key and relationship scores run from 0 to 1 with labels `strong` (0.75 and up), `likely` (0.5 and up) and `weak` (0.3 and up). Show strong and likely as proposals and weak in a separate maybe list. Every proposal carries `reasons`, a list of plain sentences ready to display.
@@ -100,8 +108,8 @@ Inference results worth knowing when building interfaces. Column types are `inte
 ## 5. Workspace and workflow
 
 ```
-core/       the four modules, the only place they are edited
-test/       102 tests, run with npm test
+core/       the five modules, the only place they are edited
+test/       116 tests, run with npm test
 tools/      vendor.js copies modules into an index.html, and --check verifies a copy
 harness/    the check page, a working example of a vendored single file
 docs/       this document
@@ -194,7 +202,7 @@ Out of scope: follow up questions that remember the last answer, streaming.
 
 ### Day 198, Saturday November 21: Result Charts
 
-Repository `appaday-198-result-charts`. Category D, accent #B8860B. No AI. Modules: CORE, CLINIC. Chart.js 4.4.1 from jsdelivr.
+Repository `appaday-198-result-charts`. Category D, accent #B8860B. No AI. Modules: CORE, CLINIC, CHARTS. Chart.js 4.4.1 from jsdelivr at `dist/chart.umd.js` (4.4.1 ships no `chart.umd.min.js`; its UMD file is already minified). Shipped November 21 with core 1.2.0.
 
 Description: Result Charts turns any query result into the chart that fits it. It reads the shape of the result, picks a bar, line, scatter or pie, lets you pivot and restyle in a tap, and pins charts to a board that reruns each query whenever you open it. Works on any SQLite file, in the browser.
 
@@ -227,7 +235,7 @@ Out of scope: new exercises, free form practice on the person's own data.
 
 ### Day 200, Monday November 23: Query Desk
 
-Repository `appaday-200-query-desk`. Category U. AI, with `data-app="200"` and a Console key named `appaday-200-query-desk`. Portal entry carries `milestone:true`. Modules: all four. Exempt from the two hour budget.
+Repository `appaday-200-query-desk`. Category U. AI, with `data-app="200"` and a Console key named `appaday-200-query-desk`. Portal entry carries `milestone:true`. Modules: all five, CORE, KEYS, CLINIC, ASK and CHARTS. Exempt from the two hour budget.
 
 Description: Query Desk is a full data workstation in one browser tab. Load CSV files into a real SQLite database, let it find how the tables connect, ask questions in plain English or write SQL, chart the results, and export a finished report. A forty exercise SQL course is built in. Nothing is uploaded.
 

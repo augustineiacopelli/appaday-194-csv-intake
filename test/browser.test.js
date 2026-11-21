@@ -17,9 +17,9 @@ test('the modules load as classic scripts with no module system present', async 
   ctx.globalThis = ctx;
   vm.createContext(ctx);
   ctx.initSqlJs = () => realInit();
-  ['qd-core.js', 'qd-keys.js', 'qd-clinic.js', 'qd-ask.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(root, 'core', f), 'utf8'), ctx, { filename: f }));
+  ['qd-core.js', 'qd-keys.js', 'qd-clinic.js', 'qd-ask.js', 'qd-charts.js'].forEach(f => vm.runInContext(fs.readFileSync(path.join(root, 'core', f), 'utf8'), ctx, { filename: f }));
   assert.equal(typeof ctx.module, 'undefined');
-  ['QD', 'QDKeys', 'QDClinic', 'QDAsk'].forEach(g => assert.equal(typeof ctx[g], 'object', g));
+  ['QD', 'QDKeys', 'QDClinic', 'QDAsk', 'QDCharts'].forEach(g => assert.equal(typeof ctx[g], 'object', g));
   await ctx.QD.boot();
   const p = ctx.QDClinic.createProject();
   assert.equal(p.scalar('SELECT count(*) FROM students'), 400);
@@ -29,12 +29,12 @@ test('the modules load as classic scripts with no module system present', async 
 
 test('the harness carries current copies of every module', () => {
   const out = execFileSync('node', [path.join(root, 'tools', 'vendor.js'), '--check', harness], { encoding: 'utf8' });
-  assert.match(out, /checked .*: CORE, KEYS, CLINIC, ASK/);
+  assert.match(out, /checked .*: CORE, KEYS, CLINIC, ASK, CHARTS/);
 });
 
 test('vendor --check catches a stale or edited copy', () => {
   const tmp = path.join(require('os').tmpdir(), 'qd-stale-' + process.pid + '.html');
-  fs.writeFileSync(tmp, fs.readFileSync(harness, 'utf8').replace("QD.VERSION = '1.0.0'", "QD.VERSION = '0.9.9'"));
+  fs.writeFileSync(tmp, fs.readFileSync(harness, 'utf8').replace("QD.VERSION = '1.2.0'", "QD.VERSION = '0.9.9'"));
   assert.throws(() => execFileSync('node', [path.join(root, 'tools', 'vendor.js'), '--check', tmp], { stdio: 'pipe' }));
   execFileSync('node', [path.join(root, 'tools', 'vendor.js'), tmp], { stdio: 'pipe' });
   execFileSync('node', [path.join(root, 'tools', 'vendor.js'), '--check', tmp], { stdio: 'pipe' });
@@ -59,9 +59,9 @@ test('the harness page runs every check to green in a browser like environment',
   const rows = [...doc.querySelectorAll('#checks li')].map(li => li.className + ' | ' + li.children[1].textContent + ' | ' + li.children[2].textContent);
   const summary = doc.getElementById('summary').textContent;
   assert.match(summary, /^All checks passed, 1 skipped\.$/, summary + '\n' + rows.join('\n'));
-  assert.equal(rows.length, 9);
-  assert.equal(rows.filter(r => r.startsWith('ok')).length, 8, rows.join('\n'));
-  assert.match(rows[8], /^skip \| The shared key and model scripts are present/);
+  assert.equal(rows.length, 10);
+  assert.equal(rows.filter(r => r.startsWith('ok')).length, 9, rows.join('\n'));
+  assert.match(rows[9], /^skip \| The shared key and model scripts are present/);
   // the size test runs at a tiny size
   const btn = doc.querySelector('button[data-mb="5"]');
   btn.setAttribute('data-mb', '0.2'); btn.click();

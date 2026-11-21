@@ -22,10 +22,10 @@ This repository also carries the shared Query Desk modules used by AppADay 194 t
 
 ```
 npm install                 # sql.js, jsdom and fake-indexeddb, for the tests only
-npm test                    # 99 tests of the shared core
+npm test                    # 116 tests of the shared core
 npm run check               # vendored copies in index.html and the harness match core/
 node tools/vendor.js index.html   # copy core/ into the app after any core change
 npm run fixtures            # regenerate fixtures/
 ```
 
-`fixtures/` holds four test files: an Excel style CSV with a byte order mark and leading zero ZIP codes, a semicolon file with day first dates and one bad row, a plain comma file with every type and a near miss column, and a file just over the 15 MB phone limit. `test/e2e_csv_intake.py` drives the app in Chromium at 375 px through the done list. `test/e2e_query_bench.py` does the same for Query Bench (AppADay 195), serving this repo, `appaday-195-query-bench` and the portal clone side by side. Open `harness/index.html` in a browser to check the core on a real device. Edit modules only in `core/`.
+`fixtures/` holds four test files: an Excel style CSV with a byte order mark and leading zero ZIP codes, a semicolon file with day first dates and one bad row, a plain comma file with every type and a near miss column, and a file just over the 15 MB phone limit. `test/e2e_csv_intake.py` drives the app in Chromium at 375 px through the done list. `test/e2e_query_bench.py` does the same for Query Bench (AppADay 195), serving this repo, `appaday-195-query-bench` and the portal clone side by side. `test/e2e_result_charts.py` does the same for Result Charts (AppADay 198); it serves Chart.js from `node_modules`, so run `npm install` first. Open `harness/index.html` in a browser to check the core on a real device. Edit modules only in `core/`.

@@ -362,7 +362,7 @@ footer a { color: var(--muted); }
 <div id="toast" class="toast hidden" role="status"></div>
 
 <script>
-/* QD:CORE BEGIN v1.0.0 */
+/* QD:CORE BEGIN v1.2.0 */
 /*
  * Query Desk shared core. One classic script, no dependencies of its own.
  * It expects the sql.js loader (initSqlJs) to be present, or passed to QD.boot.
@@ -376,7 +376,7 @@ footer a { color: var(--muted); }
   'use strict';
 
   var QD = {};
-  QD.VERSION = '1.0.0';
+  QD.VERSION = '1.2.0';
   QD.FORMAT_VERSION = 1;
   QD.SQLJS_VERSION = '1.16.0';
   QD.SQLJS_CDN = 'https://cdn.jsdelivr.net/npm/sql.js@' + QD.SQLJS_VERSION + '/dist/';
@@ -1352,6 +1352,89 @@ footer a { color: var(--muted); }
     this.db.run("DELETE FROM _qd_notebook WHERE kind = 'query' AND ref_id = ?", [id]);
     this.db.run('DELETE FROM _qd_queries WHERE id = ?', [id]);
     this._touch('queries');
+  };
+
+  /* ---------------------------------------------------------------- charts */
+
+  QD.CHART_TYPES = ['bar', 'line', 'scatter', 'pie', 'tile'];
+  QD.CHART_SORTS = ['none', 'asc', 'desc'];
+  QD.CHART_KEYS = ['type', 'x', 'y', 'series', 'stacked', 'sort', 'limit', 'title'];
+
+  /**
+   * Check a chart spec against the fixed shape shared by Days 198 and 200:
+   * { type, x, y, series, stacked, sort, limit, title } and nothing else.
+   * Returns { ok, reason }.
+   */
+  QD.validateChartSpec = function (spec) {
+    function no(reason) { return { ok: false, reason: reason }; }
+    if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return no('A chart spec must be an object.');
+    var keys = Object.keys(spec), i;
+    for (i = 0; i < keys.length; i += 1) {
+      if (QD.CHART_KEYS.indexOf(keys[i]) < 0) return no('A chart spec cannot carry ' + keys[i] + '.');
+    }
+    for (i = 0; i < QD.CHART_KEYS.length; i += 1) {
+      if (!(QD.CHART_KEYS[i] in spec)) return no('A chart spec needs ' + QD.CHART_KEYS[i] + '.');
+    }
+    if (QD.CHART_TYPES.indexOf(spec.type) < 0) return no('The chart type must be one of ' + QD.CHART_TYPES.join(', ') + '.');
+    function name(v) { return typeof v === 'string' && v.length > 0 && v.length <= 200; }
+    if (spec.type === 'tile') { if (spec.x !== null && !name(spec.x)) return no('x must be a column name or null.'); }
+    else if (!name(spec.x)) return no('x must be a column name.');
+    if (!Array.isArray(spec.y) || spec.y.length < 1 || spec.y.length > 4) return no('y must list one to four columns.');
+    for (i = 0; i < spec.y.length; i += 1) { if (!name(spec.y[i])) return no('Every y entry must be a column name.'); }
+    if (spec.series !== null && !name(spec.series)) return no('series must be a column name or null.');
+    if (typeof spec.stacked !== 'boolean') return no('stacked must be true or false.');
+    if (QD.CHART_SORTS.indexOf(spec.sort) < 0) return no('sort must be none, asc or desc.');
+    if (typeof spec.limit !== 'number' || Math.floor(spec.limit) !== spec.limit || spec.limit < 1 || spec.limit > 1000) {
+      return no('limit must be a whole number from 1 to 1000.');
+    }
+    if (typeof spec.title !== 'string' || spec.title.length > 200) return no('title must be text of 200 characters or fewer.');
+    return { ok: true, reason: null };
+  };
+
+  function checkSpec(spec) {
+    var v = QD.validateChartSpec(spec);
+    if (!v.ok) { var e = new Error(v.reason); e.kind = 'spec'; throw e; }
+  }
+  function chartRow(r) {
+    var spec = null;
+    try { spec = JSON.parse(r.spec_json); } catch (e) { spec = null; }
+    return { id: r.id, queryId: r.query_id, name: r.name, spec: spec, position: r.position, createdAt: r.created_at };
+  }
+
+  /** Pin a chart. c: { queryId, spec, position }. Without a position it goes to the end of the board. Returns the id. */
+  Project.prototype.saveChart = function (c) {
+    checkSpec(c.spec);
+    var pos = c.position;
+    if (pos == null) pos = Number(this.scalar('SELECT coalesce(max(position), -1) + 1 FROM _qd_charts'));
+    this.db.run('INSERT INTO _qd_charts (query_id, name, spec_json, position, created_at) VALUES (?,?,?,?,?)',
+      [c.queryId == null ? null : c.queryId, c.spec.title || null, JSON.stringify(c.spec), pos, QD.now()]);
+    var id = this.scalar('SELECT last_insert_rowid()');
+    this._touch('charts');
+    return id;
+  };
+  /** Pinned charts in board order. */
+  Project.prototype.charts = function () {
+    return this.objects('SELECT * FROM _qd_charts ORDER BY position, id').map(chartRow);
+  };
+  Project.prototype.updateChart = function (id, spec) {
+    checkSpec(spec);
+    this.db.run('UPDATE _qd_charts SET spec_json = ?, name = ? WHERE id = ?', [JSON.stringify(spec), spec.title || null, id]);
+    this._touch('charts');
+  };
+  /** Move a chart to a zero based place on the board and renumber the rest in order. */
+  Project.prototype.moveChart = function (id, position) {
+    var ids = this.charts().map(function (c) { return c.id; }), from = ids.indexOf(id), db = this.db;
+    if (from < 0) return;
+    ids.splice(from, 1);
+    var to = Math.max(0, Math.min(ids.length, Math.floor(position)));
+    ids.splice(to, 0, id);
+    ids.forEach(function (cid, i) { db.run('UPDATE _qd_charts SET position = ? WHERE id = ?', [i, cid]); });
+    this._touch('charts');
+  };
+  Project.prototype.deleteChart = function (id) {
+    this.db.run('DELETE FROM _qd_charts WHERE id = ?', [id]);
+    this.db.run("DELETE FROM _qd_notebook WHERE kind = 'chart' AND ref_id = ?", [id]);
+    this._touch('charts');
   };
 
   /* ------------------------------------------------- keys and relationships */

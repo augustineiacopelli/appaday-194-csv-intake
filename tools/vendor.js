@@ -14,7 +14,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const MODULES = { CORE: 'qd-core.js', KEYS: 'qd-keys.js', CLINIC: 'qd-clinic.js', ASK: 'qd-ask.js' };
+const MODULES = { CORE: 'qd-core.js', KEYS: 'qd-keys.js', CLINIC: 'qd-clinic.js', ASK: 'qd-ask.js', CHARTS: 'qd-charts.js' };
 const args = process.argv.slice(2);
 const check = args.includes('--check');
 const targets = args.filter(a => a !== '--check');
@@ -36,7 +36,7 @@ for (const target of targets) {
     else html = html.replace(re, () => src);
   }
   if (!found.length) { console.error(target + ': no QD markers found'); bad += 1; continue; }
-  if (found.includes('KEYS') || found.includes('CLINIC') || found.includes('ASK')) {
+  if (found.some(t => t !== 'CORE')) {
     if (!found.includes('CORE')) { console.error(target + ': a module is present without QD:CORE'); bad += 1; }
     else if (html.indexOf('QD:CORE BEGIN') > Math.min(...found.filter(t => t !== 'CORE').map(t => html.indexOf('QD:' + t + ' BEGIN')))) {
       console.error(target + ': QD:CORE must come before the other modules'); bad += 1;

@@ -67,7 +67,7 @@
   </div>
 </main>
 <script>
-/* QD:CORE BEGIN v1.0.0 */
+/* QD:CORE BEGIN v1.2.0 */
 /*
  * Query Desk shared core. One classic script, no dependencies of its own.
  * It expects the sql.js loader (initSqlJs) to be present, or passed to QD.boot.
@@ -81,7 +81,7 @@
   'use strict';
 
   var QD = {};
-  QD.VERSION = '1.0.0';
+  QD.VERSION = '1.2.0';
   QD.FORMAT_VERSION = 1;
   QD.SQLJS_VERSION = '1.16.0';
   QD.SQLJS_CDN = 'https://cdn.jsdelivr.net/npm/sql.js@' + QD.SQLJS_VERSION + '/dist/';
@@ -1057,6 +1057,89 @@
     this.db.run("DELETE FROM _qd_notebook WHERE kind = 'query' AND ref_id = ?", [id]);
     this.db.run('DELETE FROM _qd_queries WHERE id = ?', [id]);
     this._touch('queries');
+  };
+
+  /* ---------------------------------------------------------------- charts */
+
+  QD.CHART_TYPES = ['bar', 'line', 'scatter', 'pie', 'tile'];
+  QD.CHART_SORTS = ['none', 'asc', 'desc'];
+  QD.CHART_KEYS = ['type', 'x', 'y', 'series', 'stacked', 'sort', 'limit', 'title'];
+
+  /**
+   * Check a chart spec against the fixed shape shared by Days 198 and 200:
+   * { type, x, y, series, stacked, sort, limit, title } and nothing else.
+   * Returns { ok, reason }.
+   */
+  QD.validateChartSpec = function (spec) {
+    function no(reason) { return { ok: false, reason: reason }; }
+    if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return no('A chart spec must be an object.');
+    var keys = Object.keys(spec), i;
+    for (i = 0; i < keys.length; i += 1) {
+      if (QD.CHART_KEYS.indexOf(keys[i]) < 0) return no('A chart spec cannot carry ' + keys[i] + '.');
+    }
+    for (i = 0; i < QD.CHART_KEYS.length; i += 1) {
+      if (!(QD.CHART_KEYS[i] in spec)) return no('A chart spec needs ' + QD.CHART_KEYS[i] + '.');
+    }
+    if (QD.CHART_TYPES.indexOf(spec.type) < 0) return no('The chart type must be one of ' + QD.CHART_TYPES.join(', ') + '.');
+    function name(v) { return typeof v === 'string' && v.length > 0 && v.length <= 200; }
+    if (spec.type === 'tile') { if (spec.x !== null && !name(spec.x)) return no('x must be a column name or null.'); }
+    else if (!name(spec.x)) return no('x must be a column name.');
+    if (!Array.isArray(spec.y) || spec.y.length < 1 || spec.y.length > 4) return no('y must list one to four columns.');
+    for (i = 0; i < spec.y.length; i += 1) { if (!name(spec.y[i])) return no('Every y entry must be a column name.'); }
+    if (spec.series !== null && !name(spec.series)) return no('series must be a column name or null.');
+    if (typeof spec.stacked !== 'boolean') return no('stacked must be true or false.');
+    if (QD.CHART_SORTS.indexOf(spec.sort) < 0) return no('sort must be none, asc or desc.');
+    if (typeof spec.limit !== 'number' || Math.floor(spec.limit) !== spec.limit || spec.limit < 1 || spec.limit > 1000) {
+      return no('limit must be a whole number from 1 to 1000.');
+    }
+    if (typeof spec.title !== 'string' || spec.title.length > 200) return no('title must be text of 200 characters or fewer.');
+    return { ok: true, reason: null };
+  };
+
+  function checkSpec(spec) {
+    var v = QD.validateChartSpec(spec);
+    if (!v.ok) { var e = new Error(v.reason); e.kind = 'spec'; throw e; }
+  }
+  function chartRow(r) {
+    var spec = null;
+    try { spec = JSON.parse(r.spec_json); } catch (e) { spec = null; }
+    return { id: r.id, queryId: r.query_id, name: r.name, spec: spec, position: r.position, createdAt: r.created_at };
+  }
+
+  /** Pin a chart. c: { queryId, spec, position }. Without a position it goes to the end of the board. Returns the id. */
+  Project.prototype.saveChart = function (c) {
+    checkSpec(c.spec);
+    var pos = c.position;
+    if (pos == null) pos = Number(this.scalar('SELECT coalesce(max(position), -1) + 1 FROM _qd_charts'));
+    this.db.run('INSERT INTO _qd_charts (query_id, name, spec_json, position, created_at) VALUES (?,?,?,?,?)',
+      [c.queryId == null ? null : c.queryId, c.spec.title || null, JSON.stringify(c.spec), pos, QD.now()]);
+    var id = this.scalar('SELECT last_insert_rowid()');
+    this._touch('charts');
+    return id;
+  };
+  /** Pinned charts in board order. */
+  Project.prototype.charts = function () {
+    return this.objects('SELECT * FROM _qd_charts ORDER BY position, id').map(chartRow);
+  };
+  Project.prototype.updateChart = function (id, spec) {
+    checkSpec(spec);
+    this.db.run('UPDATE _qd_charts SET spec_json = ?, name = ? WHERE id = ?', [JSON.stringify(spec), spec.title || null, id]);
+    this._touch('charts');
+  };
+  /** Move a chart to a zero based place on the board and renumber the rest in order. */
+  Project.prototype.moveChart = function (id, position) {
+    var ids = this.charts().map(function (c) { return c.id; }), from = ids.indexOf(id), db = this.db;
+    if (from < 0) return;
+    ids.splice(from, 1);
+    var to = Math.max(0, Math.min(ids.length, Math.floor(position)));
+    ids.splice(to, 0, id);
+    ids.forEach(function (cid, i) { db.run('UPDATE _qd_charts SET position = ? WHERE id = ?', [i, cid]); });
+    this._touch('charts');
+  };
+  Project.prototype.deleteChart = function (id) {
+    this.db.run('DELETE FROM _qd_charts WHERE id = ?', [id]);
+    this.db.run("DELETE FROM _qd_notebook WHERE kind = 'chart' AND ref_id = ?", [id]);
+    this._touch('charts');
   };
 
   /* ------------------------------------------------- keys and relationships */
@@ -2898,6 +2981,197 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = A;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
 /* QD:ASK END */
+/* QD:CHARTS BEGIN v1.0.0 */
+/*
+ * Query Desk charts: reads the shape of a query result and turns it into a chart spec and chart data.
+ * Pure JavaScript with no reference to any charting library, so Day 198 and Day 200 can draw the
+ * same rows with whatever renderer they carry. Depends on nothing; QD:CORE validates stored specs.
+ *
+ * The spec is exactly { type, x, y, series, stacked, sort, limit, title }.
+ * ASCII only.
+ */
+(function (root) {
+  'use strict';
+
+  var Q = {};
+  Q.VERSION = '1.0.0';
+  Q.DEFAULT_LIMIT = 50;
+  Q.MAX_SERIES = 8;
+  Q.PIE_MAX_ROWS = 6;
+
+  var DATE_VALUE = /^\d{4}-\d{2}(-\d{2})?([ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?)?$/;
+  var DATE_NAME = /(year|month|term|quarter|week|period)/i;
+  var ID_NAME = /id$/i;
+
+  function columnValues(result, i) {
+    var out = [], r;
+    for (r = 0; r < result.rows.length; r += 1) out.push(result.rows[r][i]);
+    return out;
+  }
+
+  /**
+   * Label each column of a result as number, date or label.
+   * Returns [{ name, index, kind, distinct, positive }].
+   */
+  Q.profile = function (result) {
+    var cols = (result && result.columns) || [];
+    return cols.map(function (name, i) {
+      var vals = columnValues(result, i), present = vals.filter(function (v) { return v !== null && v !== undefined && v !== ''; });
+      var numeric = present.length > 0 && present.every(function (v) { return typeof v === 'number' && isFinite(v); });
+      var dateLike = present.length > 0 && present.every(function (v) { return typeof v === 'string' && DATE_VALUE.test(v); });
+      var idName = ID_NAME.test(String(name));
+      var kind;
+      if (numeric && idName) kind = 'label';
+      else if (dateLike || (!idName && DATE_NAME.test(String(name)) && present.length > 0)) kind = 'date';
+      else if (numeric) kind = 'number';
+      else kind = 'label';
+      var seen = {}, distinct = 0;
+      present.forEach(function (v) { var k = String(v); if (!seen[k]) { seen[k] = true; distinct += 1; } });
+      return { name: name, index: i, kind: kind, distinct: distinct,
+        positive: numeric && present.every(function (v) { return v > 0; }) };
+    });
+  };
+
+  function spec(type, x, y, series, sort, title) {
+    return { type: type, x: x, y: y, series: series, stacked: false, sort: sort, limit: Q.DEFAULT_LIMIT, title: title || '' };
+  }
+
+  /**
+   * Decide the first chart for a result.
+   * Returns { spec, types, shape, reason, profile }. spec is null when no chart fits, and reason says why.
+   * opts: { title }
+   */
+  Q.suggest = function (result, opts) {
+    var o = opts || {}, title = o.title || '', prof = Q.profile(result);
+    var nums = prof.filter(function (c) { return c.kind === 'number'; });
+    var dates = prof.filter(function (c) { return c.kind === 'date'; });
+    var labels = prof.filter(function (c) { return c.kind === 'label'; });
+    var rows = result && result.rows ? result.rows.length : 0;
+    function out(s, types, shape) { return { spec: s, types: types, shape: shape, reason: null, profile: prof }; }
+    function none(reason) { return { spec: null, types: [], shape: 'none', reason: reason, profile: prof }; }
+
+    if (!prof.length) return none('The query returned no columns to chart.');
+    if (!rows) return none('The query returned no rows, so there is nothing to chart.');
+    if (rows === 1 && prof.length === 1) {
+      return out(spec('tile', null, [prof[0].name], null, 'none', title), ['tile'], 'tile');
+    }
+    if (dates.length === 1 && labels.length === 0 && nums.length >= 1 && nums.length <= 4) {
+      return out(spec('line', dates[0].name, nums.map(function (c) { return c.name; }), null, 'asc', title), ['line', 'bar'], 'line');
+    }
+    if (labels.length === 2 && nums.length === 1 && dates.length === 0) {
+      return out(spec('bar', labels[0].name, [nums[0].name], labels[1].name, 'none', title), ['bar', 'line'], 'pivot');
+    }
+    if (labels.length === 1 && nums.length === 1 && dates.length === 0) {
+      var types = ['bar'];
+      if (rows <= Q.PIE_MAX_ROWS && nums[0].positive) types.push('pie');
+      return out(spec('bar', labels[0].name, [nums[0].name], null, 'desc', title), types, 'bar');
+    }
+    if (nums.length === 2 && labels.length === 0 && dates.length === 0) {
+      return out(spec('scatter', nums[0].name, [nums[1].name], null, 'none', title), ['scatter'], 'scatter');
+    }
+    if (rows === 1) return none('A single row with several columns has no chart. Return one value for a number tile.');
+    if (!nums.length) return none('A chart needs at least one number column, and this result has none.');
+    if (nums.length > 4 && dates.length) return none('A line chart can show at most four number columns.');
+    if (labels.length > 2) return none('Charts read at most two label columns, and this result has ' + labels.length + '.');
+    return none('This mix of columns has no chart. Try one label with one number, a date with up to four numbers, or two numbers.');
+  };
+
+  function colIndex(result, name) {
+    var i = result.columns.indexOf(name);
+    if (i < 0) { var e = new Error('The column ' + name + ' is not in this result.'); e.kind = 'column'; throw e; }
+    return i;
+  }
+  function num(v) { return typeof v === 'number' && isFinite(v) ? v : (v === null || v === undefined || v === '' ? null : (isFinite(Number(v)) ? Number(v) : null)); }
+  function key(v) { return v === null || v === undefined || v === '' ? '(blank)' : String(v); }
+  function cmp(a, b) {
+    var na = Number(a), nb = Number(b);
+    if (a !== '' && b !== '' && isFinite(na) && isFinite(nb)) return na - nb;
+    return a < b ? -1 : (a > b ? 1 : 0);
+  }
+
+  /**
+   * Turn a result and a spec into chart data, after pivot, sort and limit.
+   * Returns { labels, datasets: [{ label, data }], type, truncated }.
+   * Scatter data points are { x, y }. A tile has one dataset with one value.
+   * Throws an Error with kind 'column' when the spec names a column the result does not have.
+   */
+  Q.data = function (result, sp) {
+    var s = sp, rows = result.rows || [], limit = s.limit || Q.DEFAULT_LIMIT, i;
+    if (s.type === 'tile') {
+      var ti = colIndex(result, s.y[0]);
+      return { labels: [s.y[0]], datasets: [{ label: s.y[0], data: [rows.length ? rows[0][ti] : null] }], type: 'tile', truncated: false };
+    }
+    var xi = colIndex(result, s.x);
+    var yis = s.y.map(function (c) { return colIndex(result, c); });
+
+    if (s.type === 'scatter') {
+      var pts = [];
+      for (i = 0; i < rows.length; i += 1) {
+        var px = num(rows[i][xi]), py = num(rows[i][yis[0]]);
+        if (px !== null && py !== null) pts.push({ x: px, y: py });
+      }
+      var cut = pts.length > limit;
+      return { labels: [], datasets: [{ label: s.y[0], data: pts.slice(0, limit) }], type: 'scatter', truncated: cut };
+    }
+
+    var order = [], sums = {}, seriesNames = [], seriesTotals = {};
+    if (s.series) {
+      var si = colIndex(result, s.series), yi = yis[0];
+      for (i = 0; i < rows.length; i += 1) {
+        var kx = key(rows[i][xi]), ks = key(rows[i][si]), v = num(rows[i][yi]) || 0;
+        if (!(kx in sums)) { sums[kx] = {}; order.push(kx); }
+        if (!(ks in seriesTotals)) { seriesTotals[ks] = 0; seriesNames.push(ks); }
+        sums[kx][ks] = (sums[kx][ks] || 0) + v;
+        seriesTotals[ks] += v;
+      }
+      if (seriesNames.length > Q.MAX_SERIES) {
+        var ranked = seriesNames.slice().sort(function (a, b) { return seriesTotals[b] - seriesTotals[a]; });
+        var keep = ranked.slice(0, Q.MAX_SERIES - 1), keepSet = {};
+        keep.forEach(function (k) { keepSet[k] = true; });
+        order.forEach(function (kx) {
+          var other = 0;
+          Object.keys(sums[kx]).forEach(function (ks) { if (!keepSet[ks]) { other += sums[kx][ks]; delete sums[kx][ks]; } });
+          if (other) sums[kx].Other = other;
+        });
+        seriesNames = seriesNames.filter(function (k) { return keepSet[k]; }).concat(['Other']);
+      }
+    } else {
+      seriesNames = s.y.slice();
+      for (i = 0; i < rows.length; i += 1) {
+        var k = key(rows[i][xi]);
+        if (!(k in sums)) { sums[k] = {}; order.push(k); }
+        yis.forEach(function (yIdx, j) {
+          var val = num(rows[i][yIdx]);
+          if (val === null) { if (!(seriesNames[j] in sums[k])) sums[k][seriesNames[j]] = null; return; }
+          sums[k][seriesNames[j]] = (sums[k][seriesNames[j]] || 0) + val;
+        });
+      }
+    }
+    function total(kx) {
+      var t = 0;
+      seriesNames.forEach(function (n) { t += sums[kx][n] || 0; });
+      return t;
+    }
+    var byX = s.type === 'line';
+    if (s.sort === 'asc') order.sort(function (a, b) { return byX ? cmp(a, b) : total(a) - total(b); });
+    else if (s.sort === 'desc') order.sort(function (a, b) { return byX ? cmp(b, a) : total(b) - total(a); });
+    var truncated = order.length > limit;
+    order = order.slice(0, limit);
+    var fillZero = !!s.series || s.type !== 'line';
+    var datasets = seriesNames.map(function (n) {
+      return { label: n, data: order.map(function (kx) {
+        var v = sums[kx][n];
+        return v === undefined || v === null ? (fillZero ? 0 : null) : v;
+      }) };
+    });
+    if (s.type === 'pie') datasets = datasets.slice(0, 1);
+    return { labels: order, datasets: datasets, type: s.type, truncated: truncated };
+  };
+
+  root.QDCharts = Q;
+  if (typeof module !== 'undefined' && module.exports) module.exports = Q;
+})(typeof globalThis !== 'undefined' ? globalThis : this);
+/* QD:CHARTS END */
 </script>
 <script>
 (function () {
@@ -2979,6 +3253,24 @@
       if (n !== 14) throw new Error(n + ' relationships proposed, expected 14');
       if (!path || path.length !== 2) throw new Error('join path not found');
       return '14 of 14 relationships, ' + a.stats.pairsTested + ' pairs tested, ' + took;
+    }],
+    ['Charts read the shape of a result', function () {
+      var shapes = [
+        ['SELECT count(*) AS students FROM students', 'tile'],
+        ['SELECT t.start_date, count(*) AS n FROM enrollments e JOIN sections s ON s.section_id = e.section_id JOIN terms t ON t.term_id = s.term_id GROUP BY t.term_id', 'line'],
+        ['SELECT c.name AS campus, count(*) AS n FROM students s JOIN campuses c ON c.campus_id = s.home_campus_id GROUP BY c.name', 'bar'],
+        ['SELECT salary, instructor_id * 1.0 AS score FROM instructors', 'scatter']
+      ], bad = [];
+      shapes.forEach(function (sh) {
+        var r = clinic.query(sh[0], { history: false }), g = QDCharts.suggest(r);
+        if (!g.spec || g.spec.type !== sh[1]) bad.push(sh[1]);
+        else QDCharts.data(r, g.spec);
+      });
+      if (bad.length) throw new Error('wrong shape for ' + bad.join(', '));
+      var id = clinic.saveChart({ queryId: null, spec: QDCharts.suggest(clinic.query(shapes[2][0], { history: false })).spec });
+      var ok = clinic.charts().some(function (c) { return c.id === id; }); clinic.deleteChart(id);
+      if (!ok) throw new Error('chart not stored');
+      return '4 shapes, core ' + QD.VERSION + ', charts ' + QDCharts.VERSION;
     }],
     ['A project survives export and reopen', function () {
       QDClinic.check(clinic, '1.1', 'SELECT * FROM campuses');
