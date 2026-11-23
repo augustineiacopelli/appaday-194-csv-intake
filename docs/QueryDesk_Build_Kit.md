@@ -14,7 +14,7 @@ Four modules were built and tested on November 16 so the daily sessions only hav
 | `qd-ask.js` | `QDAsk` | Question to SQL prompt, reply parsing, one repair pass, query explainer | 197, 200 |
 | `qd-charts.js` | `QDCharts` | Added on Day 198. Profiles a result's columns as number, date or label, suggests the first chart spec and the allowed types, and turns a result and a spec into labels and datasets after pivot, sort and limit. Pure JavaScript with no Chart.js reference | 198, 200 |
 
-The core is at version 1.2.0 as of Day 198, which added chart storage (`saveChart`, `charts`, `updateChart`, `moveChart`, `deleteChart` and `QD.validateChartSpec`) with no schema migration. The test suite has 116 tests and all pass (`npm test`), the original 102 plus 14 chart tests in `test/charts.test.js`. It covers the core, four trap datasets for key inference, every exercise three ways (the reference answer, a second correct route that must be accepted, and a common mistake that must be rejected), the Plain Ask flow against a mocked model, and the check page run end to end in a simulated browser.
+The core is at version 1.3.0 as of Day 200, which added the report block methods (`addBlock`, `blocks`, `updateBlock`, `moveBlock`, `deleteBlock`, `reportTitle`, `setReportTitle`) and fixed `deleteQuery` so it also removes report blocks that showed its charts. Before that it was 1.2.0 as of Day 198, which added chart storage (`saveChart`, `charts`, `updateChart`, `moveChart`, `deleteChart` and `QD.validateChartSpec`) with no schema migration. The test suite has 140 tests and all pass (`npm test`): the original 102, 14 chart tests in `test/charts.test.js`, 15 report block tests in `test/notebook.test.js` and 9 compatibility tests in `test/compat.test.js`. It covers the core, four trap datasets for key inference, every exercise three ways (the reference answer, a second correct route that must be accepted, and a common mistake that must be rejected), the Plain Ask flow against a mocked model, and the check page run end to end in a simulated browser.
 
 ## 2. What has not been verified
 
@@ -109,8 +109,10 @@ Inference results worth knowing when building interfaces. Column types are `inte
 
 ```
 core/       the five modules, the only place they are edited
-test/       116 tests, run with npm test
-tools/      vendor.js copies modules into an index.html, and --check verifies a copy
+test/       140 tests, run with npm test, and the e2e scripts for 194 to 200
+tools/      vendor.js copies modules into an index.html, and --check verifies a copy; build200.js builds Day 200
+apps/200/   the Query Desk sources and the built index.html
+fixtures/   CSV fixtures, the qd200 set and the compat projects
 harness/    the check page, a working example of a vendored single file
 docs/       this document
 ```
@@ -273,8 +275,27 @@ Run against the practice data on the published check page in Chrome. Every answe
 | Which courses have never been offered? | Internship in Business, Special Topics in Computing, Field Camp and Special Topics in Mathematics, through NOT EXISTS on sections | 2.9 s |
 | Which department has the highest DFW rate, counting D, F and withdrawals among finished enrollments? | Mathematics at 34.9 percent (259 of 743), with three joins, decimal division, and the assumption that finished means Completed or Withdrawn so in progress enrollments are left out | 4.1 s |
 
-The second and fifth questions returned only the top row because they ask for one campus and one department. Those top rows match the first entry of each stored ranking; the rest of each ranking was not returned and so was not checked here. The run inside the built 200 on the Prairie Ridge sample follows in phase 5.
+The second and fifth questions returned only the top row because they ask for one campus and one department. Those top rows match the first entry of each stored ranking; the rest of each ranking was not returned and so was not checked here.
+
+### Results inside Query Desk, November 23, 2026 (Day 200, the published app, the Prairie Ridge sample after Confirm all strong)
+
+Run in the live app at augustineiacopelli.github.io/appaday-200-query-desk/ through `QDAsk.ask` on the shell's open project, with 13 relationships confirmed by Confirm all strong. All five returned status ok with no repair: 400 students; Riverbend with 21 open work orders; Victor Eastman at 106,635; the same four courses (Internship in Business, Special Topics in Computing, Field Camp, Special Topics in Mathematics); and Mathematics at 34.9 percent (259 of 743), with the assumption that finished means Completed or Withdrawn stated.
 
 ## 9. Opening prompt for each execution session
 
 We are building [app name] for AppADay Day [number] according to the manifest for that day in the Query Desk Build Kit. The shared modules are already written and tested and are in the workspace under core. Do not rewrite them. Build the single index.html for this app, vendor the modules it needs with tools/vendor.js, run npm test and the vendor check, and deliver the shipping checklist.
+
+## 10. Day 200 build record
+
+Written November 23, 2026, when Query Desk shipped.
+
+Source. `apps/200/src` holds head.html, base.css, tabs.css, body.html, shell.js and the seven tab files. `node tools/build200.js` writes `apps/200/index.html` with empty module markers, then `node tools/vendor.js apps/200/index.html` fills them (`npm run build200` does both). `node tools/build200.js --check` fails when the built file is older than a source, when a tabs.css selector does not start with a tab class, or when a source holds a character outside ASCII. The 200 repository receives only index.html and its README.
+
+Departures from the manifest, each made on purpose. base.css is not 194's sheet as shipped: 194's own widgets (drop zone, table cards, type chips, column grid, preview) live in tabs.css under `.t-load`, because 196 and 199 use the same class names (`.tname`, `.cols`, `.col`, `.card`) for other things. The Learn tab takes the U green, Stino's decision. The tour scrim dims without catching taps, so Confirm all strong can advance step 2. Relate's List view shows Relationships above Keys. Elements found by `data-t` meant renaming two existing `data-t` attributes: Query's table rows and Relate's diagram boxes use `data-tbl`. The Chart tab's three settings (default limit, horizontal bars, data table) live in the shell's Settings under Charts. ctx gained `newProject`, `openProjects`, `openDbFile`, `setChanges`, `changes`, `chartSettings`, `dateOrder`, `saveNow`, `tourEvent` and `uniqueName`.
+
+Fixtures. Only one of the three qd200 relationships scores strong (`work_orders(room_id) -> rooms`, 0.96); the two to campuses score likely (0.71) because campuses has four rows. Confirm all strong therefore confirms one, and the flow confirms the other two with Confirm. The tables load as `qd200_campuses`, `qd200_rooms` and `qd200_work_orders`, named for their files.
+
+Verification. `test/e2e_query_desk.py` passes 91 of 91 in Chromium: the full flow at 375 by 812, the Ask links with a mocked model, the guards, Learn, persistence, all six compatibility files, load types, the 9 MB and 16 MB size checks at 390 by 844, and the wide pass at 1280 by 800. `QD_ONLY=flow|compat|types|size|wide` runs one part. WebKit could not be installed in the build sandbox (the Playwright CDN is blocked), so Safari rests on Stino's iPhone pass. After vendoring core 1.3.0 the six daily e2e scripts passed with the same counts as before (37, 40, 31, 32, 27, 45).
+
+Portal. Entry 200 uses the 150 field order with 30 keywords. Search ranks 200 first for analyze my spreadsheet with sql and turn csv files into a report; for ask questions about my data, 197 Plain Ask ranks first on its own name and 200 second. 21 older entries carry 13 or 14 keywords, under the 15 word floor; they predate Day 200 and were left alone. og-milestone-200.png sits beside og-milestone-150.png, with the og tags unchanged.
+
