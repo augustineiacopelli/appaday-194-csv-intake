@@ -5,8 +5,9 @@
   "scripts": {
     "test": "node --test test/core.test.js test/keys.test.js test/clinic.test.js test/ask.test.js test/browser.test.js test/charts.test.js test/notebook.test.js test/compat.test.js",
     "vendor": "node tools/vendor.js",
-    "check": "node tools/vendor.js --check index.html harness/index.html",
-    "fixtures": "node tools/make-fixtures.js"
+    "check": "node tools/vendor.js --check index.html harness/index.html apps/200/index.html && node tools/build200.js --check",
+    "fixtures": "node tools/make-fixtures.js",
+    "build200": "node tools/build200.js && node tools/vendor.js apps/200/index.html"
   },
   "private": true,
   "devDependencies": {

@@ -1,0 +1,156 @@
+<div class="app">
+<header class="bar" id="bar">
+  <div class="bar-in">
+    <a class="brand" href="https://augustineiacopelli.github.io/appaday/" title="Back to the AppADay portfolio">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 12 2.84"/><path d="M21 5v3"/><path d="M21 12l-3 5h4l-3 5"/><path d="M3 12a9 3 0 0 0 11.59 2.87"/></svg></span>
+      <span><span class="brand-name">Query Desk</span><span class="brand-sub">AppADay 200</span></span>
+    </a>
+    <div class="proj">
+      <label class="sr" for="projName">Project name</label>
+      <input id="projName" class="proj-name" type="text" maxlength="60" autocomplete="off" spellcheck="false" value="" placeholder="No project open">
+      <span id="saveState" class="save-state" aria-live="polite"><span class="dot"></span><span class="txt">Starting</span></span>
+    </div>
+    <div class="bar-actions">
+      <button id="btnOpen" class="btn small" type="button">Open</button>
+      <button id="btnDownload" class="btn small" type="button" disabled>Download</button>
+      <button id="btnGear" class="btn icon-btn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </div>
+  </div>
+</header>
+<nav class="tabbar" id="tabbar" role="tablist" aria-label="Query Desk sections"></nav>
+<div class="stage" id="stage">
+  <section class="tab-root t-load hidden" data-tab="load" role="tabpanel" aria-label="Load"></section>
+  <section class="tab-root t-relate hidden" data-tab="relate" role="tabpanel" aria-label="Relate"></section>
+  <section class="tab-root t-ask hidden" data-tab="ask" role="tabpanel" aria-label="Ask"></section>
+  <section class="tab-root t-query hidden" data-tab="query" role="tabpanel" aria-label="Query"></section>
+  <section class="tab-root t-chart hidden" data-tab="chart" role="tabpanel" aria-label="Chart"></section>
+  <section class="tab-root t-report hidden" data-tab="report" role="tabpanel" aria-label="Report"></section>
+  <section class="tab-root t-learn hidden" data-tab="learn" role="tabpanel" aria-label="Learn"></section>
+  <div id="fatal" class="fatal hidden"></div>
+</div>
+</div>
+
+<div id="first" class="first hidden" role="dialog" aria-modal="true" aria-labelledby="firstTitle">
+  <div class="first-in">
+    <div class="empty-art" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 12 2.84"/><path d="M21 5v3"/><path d="M21 12l-3 5h4l-3 5"/><path d="M3 12a9 3 0 0 0 11.59 2.87"/></svg></div>
+    <h1 id="firstTitle">Query Desk</h1>
+    <p class="lede">A full data workstation in one browser tab: load spreadsheets into a real database, see how the tables connect, ask in plain English or SQL, chart what you find and export a report.</p>
+    <div class="steps" aria-hidden="true"><span>Load</span><span>Relate</span><span>Ask</span><span>Query</span><span>Chart</span><span>Report</span><span>Learn</span></div>
+    <div class="cta">
+      <button id="fSample" class="btn primary" type="button">Load sample data</button>
+      <button id="fCsv" class="btn" type="button">Choose CSV files</button>
+      <button id="fOpen" class="btn" type="button">Open a saved project</button>
+    </div>
+    <button id="fTour" class="tourlink" type="button">Take the tour</button>
+    <p class="muted">Your data stays on this device. Only Ask sends anything, and it shows you exactly what before it does.</p>
+  </div>
+</div>
+
+<div id="openScrim" class="scrim hidden" role="dialog" aria-modal="true" aria-labelledby="openTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="openTitle">Open a project</h2><button class="btn icon-btn ghost" type="button" data-close="openScrim" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="sheet-body">
+      <div>
+        <h3>Saved on this device</h3>
+        <div id="openList" class="plist"></div>
+      </div>
+      <div>
+        <h3>Start or bring in</h3>
+        <div class="sheet-row">
+          <button id="btnNew" class="btn" type="button">New project</button>
+          <button id="btnOpenFile" class="btn" type="button">Open a .sqlite or .db file</button>
+          <button id="btnSampleOpen" class="btn primary" type="button">Load sample data</button>
+        </div>
+      </div>
+      <p class="muted">Projects saved by CSV Intake, Query Bench, Key Finder, Plain Ask and Result Charts appear here too. To move one to another device, use Download and open the file there.</p>
+    </div>
+  </div>
+</div>
+
+<div id="setScrim" class="scrim hidden" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="setTitle">Settings</h2><button class="btn icon-btn ghost" type="button" data-close="setScrim" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="sheet-body">
+      <div id="setKeys">
+        <h3>Claude key</h3>
+        <p class="muted" style="margin-bottom:0.5rem">Ask uses Claude to turn a question into a query. The key stays in this browser.</p>
+        <div id="keyMount"></div>
+      </div>
+      <div id="setAsk">
+        <h3>Plain Ask</h3>
+        <p class="muted" style="margin-bottom:0.5rem">Ask sends table and column names, your confirmed relationships and the question. It can also send up to three sample rows per table so Claude sees what values look like.</p>
+        <div class="seg" id="segSamples" role="group" aria-label="Sample rows sent with a question">
+          <button type="button" data-samples="3">Three sample rows</button>
+          <button type="button" data-samples="0">None</button>
+        </div>
+      </div>
+      <div id="setLoad">
+        <h3>Loading</h3>
+        <p class="muted" style="margin-bottom:0.5rem">Used only when a date such as 03/04/2026 could be read either way. Dates with a day above 12 are always read correctly.</p>
+        <div class="seg" id="segOrder" role="group" aria-label="Default date order">
+          <button type="button" data-order="mdy">Month first</button>
+          <button type="button" data-order="dmy">Day first</button>
+        </div>
+      </div>
+      <div id="setChanges">
+        <h3>Changes</h3>
+        <div class="setrow">
+          <button id="swChanges" class="switch" type="button" role="switch" aria-checked="false"><span class="track" aria-hidden="true"></span>Allow changes in Query</button>
+          <p class="muted">Off by default. When on, INSERT, UPDATE, DELETE, CREATE and DROP typed in Query run against the open project. Tables that start with _qd_ stay protected, and the switch turns off whenever a project opens.</p>
+        </div>
+      </div>
+      <div id="setCharts">
+        <h3>Charts</h3>
+        <div class="setrow">
+          <div class="stepper" aria-label="Default chart limit"><button type="button" id="setLimDown" aria-label="Lower the default limit">-</button><output id="setLim">50</output><button type="button" id="setLimUp" aria-label="Raise the default limit">+</button></div>
+          <p class="muted">How many bars, points or periods a new chart shows before the rest are cut.</p>
+          <button id="swHoriz" class="switch" type="button" role="switch" aria-checked="true"><span class="track" aria-hidden="true"></span>Horizontal bars on a narrow screen</button>
+          <button id="swTable" class="switch" type="button" role="switch" aria-checked="false"><span class="track" aria-hidden="true"></span>Show the data table by default</button>
+        </div>
+      </div>
+      <div id="setHelp">
+        <h3>Help</h3>
+        <div class="sheet-row"><button id="btnReplayTour" class="btn" type="button">Replay the tour</button></div>
+      </div>
+      <div id="setStorage">
+        <h3>Projects on this device</h3>
+        <div id="setList" class="plist"></div>
+        <table class="limits-table" id="limitsTable" style="margin-top:0.8rem"></table>
+        <p class="muted" style="margin-top:0.5rem">Above the warning size a file can still load, but the tab may slow down or close. Above the limit a file is refused before it is read.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="chgScrim" class="scrim hidden" role="dialog" aria-modal="true" aria-labelledby="chgTitle">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="chgTitle">Allow changes?</h2><button class="btn icon-btn ghost" type="button" data-close="chgScrim" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="sheet-body explain">
+      <div>
+        <p>Query is read only until you say otherwise. With changes allowed, anything you run goes straight to this project:</p>
+        <ul>
+          <li>INSERT, UPDATE and DELETE change rows, and there is no undo.</li>
+          <li>CREATE, ALTER and DROP change tables, and several statements can run at once.</li>
+          <li>The project saves itself on this device a moment later.</li>
+        </ul>
+        <p>Download a copy first if you might want the data back. Tables that start with _qd_ stay protected, and the switch turns off again whenever you open a project.</p>
+      </div>
+      <div class="sheet-row"><button class="btn" type="button" data-close="chgScrim">Keep read only</button><button id="btnChangesOk" class="btn primary" type="button">Allow changes</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="tourScrim" class="tour-scrim hidden"></div>
+<div id="tourCard" class="tour-card hidden" role="dialog" aria-live="polite" aria-labelledby="tourText">
+  <span class="step" id="tourStep"></span>
+  <p id="tourText"></p>
+  <div class="row">
+    <button id="tourSkip" class="btn small ghost skip" type="button">Skip</button>
+    <button id="tourBack" class="btn small" type="button">Back</button>
+    <button id="tourNext" class="btn small primary" type="button">Next</button>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden" role="status"><span class="txt"></span><button class="btn small hidden" type="button" id="toastAct"></button></div>
+<input id="fileDb" class="sr" type="file" accept=".sqlite,.sqlite3,.db,application/x-sqlite3,application/vnd.sqlite3" tabindex="-1" aria-hidden="true">
+<input id="fileCsvShell" class="sr" type="file" accept=".csv,.tsv,.txt,.tab,text/csv,text/plain" multiple tabindex="-1" aria-hidden="true">
