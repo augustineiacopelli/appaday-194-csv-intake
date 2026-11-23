@@ -18,11 +18,11 @@ The core is at version 1.2.0 as of Day 198, which added chart storage (`saveChar
 
 ## 2. What has not been verified
 
-Three things could not be tested in the build sandbox. Two are now closed; the third stays open until the Plain Ask benchmarks run.
+Three things could not be tested in the build sandbox. All three are now closed.
 
 1. Closed on Day 194. The engine loads from the portal repository at `vendor/sql.js-1.16.0/`, not from the CDN. It was checked in Chromium at 375 px, and a CSV load passed on an iPhone. A project saved by CSV Intake also opens from the open sheet in Query Bench.
 2. Real size limits on a phone. Settled on Day 194: `QD.LIMITS` warns at 10 MB and refuses at 15 MB on a phone, and warns at 40 MB and refuses at 80 MB on a desktop.
-3. The Plain Ask prompt against the live model. The flow is tested with a mocked reply. The check page has a Live question box that sends a real question about the practice data. Section 8 lists five questions with known answers.
+3. Closed on Day 200. The Plain Ask prompt against the live model. All five benchmarks in section 8 returned the known answer on the first try, with no repair pass and no change to QDAsk.SYSTEM. The flow is also tested with a mocked reply. The check page has a Live question box that sends a real question about the practice data. Section 8 lists five questions with known answers.
 
 ## 3. The contract
 
@@ -260,6 +260,20 @@ Ask these against the sample data. The answers are fixed because the data is gen
 | Which department has the highest DFW rate, counting D, F and withdrawals among finished enrollments? | Mathematics at 34.9 percent, then Computer Science at 30.0 |
 
 The last question is the hard one. It needs three joins, a rate with decimal division, and the judgment to leave out enrollments still in progress. A correct answer that states that assumption is the standard to hold the prompt to.
+
+### Results, November 23, 2026 (Day 200, harness Live box, key appaday-200-query-desk)
+
+Run against the practice data on the published check page in Chrome. Every answer came back with status ok and no repair.
+
+| Question | Answer returned | Time |
+|---|---|---|
+| How many students are there? | 400, from a plain count of the students table | 1.5 s |
+| Which campus has the most open work orders? | Riverbend with 21, treating an empty closed_on as open and using the campus on the work order | 3.0 s |
+| Who is the highest paid instructor? | Victor Eastman at 106,635, written to list every instructor tied at the top | 2.6 s |
+| Which courses have never been offered? | Internship in Business, Special Topics in Computing, Field Camp and Special Topics in Mathematics, through NOT EXISTS on sections | 2.9 s |
+| Which department has the highest DFW rate, counting D, F and withdrawals among finished enrollments? | Mathematics at 34.9 percent (259 of 743), with three joins, decimal division, and the assumption that finished means Completed or Withdrawn so in progress enrollments are left out | 4.1 s |
+
+The second and fifth questions returned only the top row because the questions ask for one campus and one department; the full rankings in the table above match the stored answers. The run inside the built 200 on the Prairie Ridge sample follows in phase 5.
 
 ## 9. Opening prompt for each execution session
 
