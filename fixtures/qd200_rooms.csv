@@ -1,0 +1,25 @@
+room_id;campus_id;name;capacity
+1;1;Hall 101;60
+2;1;Hall 102;45
+3;1;Hall 210;40
+4;1;Hall 215;30
+5;1;Lab A;24
+6;1;Lab B;20
+7;1;Seminar 1;15
+8;1;Seminar 2;12
+9;2;River 100;48
+10;2;River 110;36
+11;2;River 120;30
+12;2;River 201;28
+13;2;River Lab;20
+14;2;River Seminar;16
+15;3;North 1;40
+16;3;North 2;35
+17;3;North 3;30
+18;3;North 4;22
+19;3;North Lab;18
+20;3;North Seminar;14
+21;4;Cedar 10;32
+22;4;Cedar 20;26
+23;4;Cedar Lab;19
+24;4;Cedar Seminar;12

@@ -9,6 +9,7 @@
  *   plain_mixed_types.csv        commas: integers, reals, booleans, ISO datetimes, text, and a near miss
  *                                integer column that the Coerce action can fix
  *   oversize_phone.csv           just above the phone refusal limit of 15 MB
+ *   qd200_*.csv                  three related tables for the Day 200 flow (section 5 below)
  */
 'use strict';
 const fs = require('fs');
@@ -78,4 +79,31 @@ const zips = ['02134', '07030', '01810', '06103', '67202', '67037', '08540', '00
   fs.writeFileSync(path.join(out, 'oversize_phone.csv'), parts.join(''));
 }
 
-fs.readdirSync(out).sort().forEach(f => console.log(f.padEnd(32) + fs.statSync(path.join(out, f)).size));
+/*
+ * 5. Day 200: three related tables exported from the practice data, so Relate has something to find.
+ *   qd200_campuses.csv      UTF-8 byte order mark and CRLF, like Excel
+ *   qd200_rooms.csv         semicolons
+ *   qd200_work_orders.csv   commas
+ * Known facts: 4 campuses, 24 rooms, 240 work orders, and three relationships:
+ * work_orders(campus_id) -> campuses, work_orders(room_id) -> rooms, rooms(campus_id) -> campuses.
+ */
+async function qd200() {
+  const initSqlJs = require('sql.js');
+  const QD = require('../core/qd-core.js');
+  global.QD = QD;
+  const QDClinic = require('../core/qd-clinic.js');
+  await QD.boot(initSqlJs);
+  const p = QDClinic.createProject();
+  const csv = t => QD.toCSV(p.query('SELECT * FROM ' + t + ' ORDER BY 1', { history: false, maxRows: 100000 }));
+  const campuses = csv('campuses');
+  fs.writeFileSync(path.join(out, 'qd200_campuses.csv'), Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from(campuses, 'utf8')]));
+  const rooms = csv('rooms');
+  if (/[";]/.test(rooms)) throw new Error('rooms holds a quote or semicolon, so the semicolon file would be ambiguous');
+  fs.writeFileSync(path.join(out, 'qd200_rooms.csv'), rooms.replace(/,/g, ';').replace(/\r\n/g, '\n'));
+  fs.writeFileSync(path.join(out, 'qd200_work_orders.csv'), csv('work_orders').replace(/\r\n/g, '\n'));
+  p.close();
+}
+
+qd200().then(() => {
+  fs.readdirSync(out).filter(f => /\.csv$/.test(f)).sort().forEach(f => console.log(f.padEnd(32) + fs.statSync(path.join(out, f)).size));
+}, e => { console.error(e); process.exit(1); });

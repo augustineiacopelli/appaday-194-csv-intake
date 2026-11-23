@@ -1,0 +1,90 @@
+{
+  "core": "1.2.0",
+  "apps": {
+    "194": {
+      "file": "compat_194.sqlite",
+      "name": "Compat 194",
+      "tables": [
+        {
+          "table": "excel_bom_customers",
+          "rows": 48
+        },
+        {
+          "table": "semicolon_orders_dayfirst",
+          "rows": 40
+        },
+        {
+          "table": "plain_mixed_types",
+          "rows": 60
+        }
+      ]
+    },
+    "195": {
+      "file": "compat_195.sqlite",
+      "name": "Compat 195",
+      "queries": [
+        "Student count",
+        "Campuses",
+        "Courses per department"
+      ],
+      "pinned": "Student count",
+      "historyAtLeast": 3
+    },
+    "196": {
+      "file": "compat_196.sqlite",
+      "name": "Compat 196",
+      "confirmed": [
+        "enrollments(student_id)->students(student_id)",
+        "sections(course_id)->courses(course_id)"
+      ],
+      "rejected": [
+        "work_orders(room_id)->rooms(room_id)"
+      ],
+      "positions": {
+        "campuses": [
+          24,
+          24
+        ],
+        "students": [
+          232,
+          24
+        ],
+        "enrollments": [
+          440,
+          96
+        ]
+      }
+    },
+    "197": {
+      "file": "compat_197.sqlite",
+      "name": "Compat 197",
+      "ask": [
+        "How many students are there?",
+        "Who is the highest paid instructor?"
+      ]
+    },
+    "198": {
+      "file": "compat_198.sqlite",
+      "name": "Compat 198",
+      "board": [
+        "Work order status",
+        "Students per campus"
+      ],
+      "types": [
+        "pie",
+        "bar"
+      ]
+    },
+    "199": {
+      "file": "compat_199.sqlite",
+      "name": "Query Clinic",
+      "solved": [
+        "1.1",
+        "1.2",
+        "1.3",
+        "1.4",
+        "1.5"
+      ]
+    }
+  }
+}
