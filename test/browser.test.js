@@ -34,7 +34,7 @@ test('the harness carries current copies of every module', () => {
 
 test('vendor --check catches a stale or edited copy', () => {
   const tmp = path.join(require('os').tmpdir(), 'qd-stale-' + process.pid + '.html');
-  fs.writeFileSync(tmp, fs.readFileSync(harness, 'utf8').replace("QD.VERSION = '1.2.0'", "QD.VERSION = '0.9.9'"));
+  fs.writeFileSync(tmp, fs.readFileSync(harness, 'utf8').replace(/QD\.VERSION = '[0-9.]+'/, "QD.VERSION = '0.9.9'"));
   assert.throws(() => execFileSync('node', [path.join(root, 'tools', 'vendor.js'), '--check', tmp], { stdio: 'pipe' }));
   execFileSync('node', [path.join(root, 'tools', 'vendor.js'), tmp], { stdio: 'pipe' });
   execFileSync('node', [path.join(root, 'tools', 'vendor.js'), '--check', tmp], { stdio: 'pipe' });

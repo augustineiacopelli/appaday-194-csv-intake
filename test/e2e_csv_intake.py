@@ -4,7 +4,7 @@
 import json, sqlite3, sys, os
 from playwright.sync_api import sync_playwright
 
-URL = 'http://127.0.0.1:8194/appaday-194-csv-intake/'
+URL = 'http://127.0.0.1:' + os.environ.get('CI_PORT', '8194') + '/appaday-194-csv-intake/'
 FX = '/home/claude/appaday-194-csv-intake/fixtures/'
 SHOT = '/home/claude/shots/'
 os.makedirs(SHOT, exist_ok=True)

@@ -273,7 +273,7 @@ Run against the practice data on the published check page in Chrome. Every answe
 | Which courses have never been offered? | Internship in Business, Special Topics in Computing, Field Camp and Special Topics in Mathematics, through NOT EXISTS on sections | 2.9 s |
 | Which department has the highest DFW rate, counting D, F and withdrawals among finished enrollments? | Mathematics at 34.9 percent (259 of 743), with three joins, decimal division, and the assumption that finished means Completed or Withdrawn so in progress enrollments are left out | 4.1 s |
 
-The second and fifth questions returned only the top row because the questions ask for one campus and one department; the full rankings in the table above match the stored answers. The run inside the built 200 on the Prairie Ridge sample follows in phase 5.
+The second and fifth questions returned only the top row because they ask for one campus and one department. Those top rows match the first entry of each stored ranking; the rest of each ranking was not returned and so was not checked here. The run inside the built 200 on the Prairie Ridge sample follows in phase 5.
 
 ## 9. Opening prompt for each execution session
 
